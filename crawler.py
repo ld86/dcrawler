@@ -5,8 +5,10 @@ sys.setdefaultencoding('utf-8')
 from time import sleep
 from threading import RLock
 from heapq import heappush, heappop
-from utils import fetch_query, extract_anchors
-from urlparse import urlsplit, urljoin, urlunsplit
+from utils import fetch_query, extract_anchors, transform_and_filter
+from urlparse import urljoin
+import sqlite3
+import zlib
 
 class PageContainer:
 
@@ -49,16 +51,6 @@ class PageContainer:
 class Master(PageContainer):
 
     def __init__(self):
-        def transform_and_filter(url):
-            scheme, netloc, path, query, fragment = urlsplit(url)
-            if netloc not in ['simple.wikipedia.org']:
-                return None
-            if path.find('/wiki/') != 0:
-                return None
-            if ':' in path:
-                return None
-            return urlunsplit([scheme, netloc, path, query, ''])
-
         PageContainer.__init__(self, transform_and_filter)
         self.add_new_urls(['http://simple.wikipedia.org/wiki/'])
 
@@ -89,7 +81,25 @@ class Link:
 class Slave:
 
     def __init__(self, master):
+        self.db = 'slave.db'
         self.master = master
+        self.__create_tables()
+
+    def __create_tables(self):
+        with sqlite3.connect(self.db) as db:
+            db.execute('create table if not exists links(source text, destination text)')
+            db.execute('create table if not exists pages(url text, content blob)')
+
+    def __save_page(self, page):
+        with sqlite3.connect(self.db) as db:
+            db.execute('insert into pages values(?,?)', (page.url, buffer(zlib.compress(page.get_content()))))
+
+    def __save_links(self, links):
+        with sqlite3.connect(self.db) as db:
+            for link in links:
+                destination = transform_and_filter(link.destination.url)
+                if destination is not None:
+                    db.execute('insert into links values(?,?)', (link.source.url, destination))
 
     def start(self):
         while True:
@@ -97,7 +107,11 @@ class Slave:
             for url in urls:
                 print(url)
                 page = Page(url)
+                self.__save_page(page)
+
                 links = page.get_links()
+                self.__save_links(links)
+
                 self.master.mark_as_downloaded([page.url])
                 self.master.add_new_urls([link.destination.url for link in links])
                 sleep(30)

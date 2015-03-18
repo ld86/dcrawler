@@ -4,8 +4,19 @@ sys.setdefaultencoding('utf-8')
 
 from time import sleep
 from HTMLParser import HTMLParser
+from urlparse import urlsplit, urlunsplit
 
 import urllib2  
+
+def transform_and_filter(url):
+    scheme, netloc, path, query, fragment = urlsplit(url)
+    if netloc not in ['simple.wikipedia.org']:
+        return None
+    if path.find('/wiki/') != 0:
+        return None
+    if ':' in path:
+        return None
+    return urlunsplit([scheme, netloc, path, query, ''])
 
 def fetch_query(url):
     last_error = None
