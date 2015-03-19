@@ -103,15 +103,22 @@ class Slave:
 
     def start(self):
         while True:
-            urls = self.master.get_next_urls(1)
+            urls = self.master.get_next_urls(10)
             for url in urls:
                 print(url)
-                page = Page(url)
-                self.__save_page(page)
+                try:
+                    page = Page(url)
+                    self.__save_page(page)
 
-                links = page.get_links()
-                self.__save_links(links)
+                    links = page.get_links()
+                    self.__save_links(links)
 
-                self.master.mark_as_downloaded([page.url])
-                self.master.add_new_urls([link.destination.url for link in links])
-                sleep(30)
+                    self.master.mark_as_downloaded([page.url])
+                    self.master.add_new_urls([link.destination.url for link in links])
+                    sleep(1)
+                except urllib2.HTTPError as e:
+                    print(e)
+                    if e.code == 404
+                        continue
+                    else:
+                        raise e
