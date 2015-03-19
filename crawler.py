@@ -107,6 +107,9 @@ class Slave:
             urls = self.master.get_next_urls(10)
             for url in urls:
                 print(url)
+                if url.find('https://') == 0:
+                    self.master.mark_as_downloaded([url])
+                    continue
                 try:
                     page = Page(url)
                     self.__save_page(page)
