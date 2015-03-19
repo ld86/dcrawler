@@ -9,6 +9,7 @@ from utils import fetch_query, extract_anchors, transform_and_filter
 from urlparse import urljoin
 import sqlite3
 import zlib
+import urllib2
 
 class PageContainer:
 
