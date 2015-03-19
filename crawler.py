@@ -118,7 +118,7 @@ class Slave:
                     sleep(1)
                 except urllib2.HTTPError as e:
                     print(e)
-                    if e.code == 404
+                    if e.code == 404:
                         continue
                     else:
                         raise e
